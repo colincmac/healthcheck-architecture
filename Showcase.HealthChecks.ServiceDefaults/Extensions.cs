@@ -131,6 +131,7 @@ public static class Extensions
         // Only health checks tagged with the "ready" tag
         // must pass for app to be considered ready
         // Readiness checks indicate if an application is ready to accept requests
+        // For example, wait until configuration is loaded or database migration is finished
         healthChecks.MapHealthChecks("/ready", new()
         {
             Predicate = static r => r.Tags.Contains("ready")
