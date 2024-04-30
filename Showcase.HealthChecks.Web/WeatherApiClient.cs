@@ -1,3 +1,8 @@
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using System;
+using System.Net.Http;
+using System.Threading;
+
 namespace Showcase.HealthChecks.Web;
 
 public class WeatherApiClient(HttpClient httpClient)
@@ -18,9 +23,10 @@ public class WeatherApiClient(HttpClient httpClient)
                 forecasts.Add(forecast);
             }
         }
-
         return forecasts?.ToArray() ?? [];
     }
+    public async Task<HttpResponseMessage> CheckLivelinessAsync(CancellationToken cancellationToken = default) => await httpClient.GetAsync("/healthz/alive", cancellationToken);
+    
 }
 
 public record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)

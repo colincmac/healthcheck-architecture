@@ -7,6 +7,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddRedisOutputCache("cache");
 
+// A very simple example of adding a backend api health check. There are other ways and libraries out there to simplify this
+// This makes sure the Weather API is healthy on the /healthz/alive endpoint.
+builder.Services.AddSingleton<BackendHealthCheck>();
+builder.Services.AddHealthChecks()
+    .AddCheck<BackendHealthCheck>(
+        "WeatherApi",
+        tags: new[] { "live" });
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

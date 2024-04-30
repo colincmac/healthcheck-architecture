@@ -1,25 +1,37 @@
 ﻿using Microsoft.Extensions.Diagnostics.HealthChecks;
+using System;
+using System.Net.Http;
 
 namespace Showcase.HealthChecks.Web;
 
 public class BackendHealthCheck : IHealthCheck
 {
-    private volatile bool _isReady;
+    private readonly WeatherApiClient _httpClient;
 
-    public bool StartupCompleted
+    public const int MaxSuccessCode = 299;
+    public const int MinSuccessCode = 200;
+
+    public BackendHealthCheck(WeatherApiClient httpClient)
     {
-        get => _isReady;
-        set => _isReady = value;
+        _httpClient = httpClient;
     }
 
-    public Task<HealthCheckResult> CheckHealthAsync(
-        HealthCheckContext context, CancellationToken cancellationToken = default)
+    /// <inheritdoc />
+    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        if (StartupCompleted)
+        try
         {
-            return Task.FromResult(HealthCheckResult.Healthy("The startup task has completed."));
-        }
+            if (cancellationToken.IsCancellationRequested) return new HealthCheckResult(context.Registration.FailureStatus, description: $"{nameof(BackendHealthCheck)} execution is cancelled.");
 
-        return Task.FromResult(HealthCheckResult.Unhealthy("That startup task is still running."));
+            var response = await _httpClient.CheckLivelinessAsync(cancellationToken);
+
+            if (!((int)response.StatusCode >= MinSuccessCode && (int)response.StatusCode <= MaxSuccessCode)) return new HealthCheckResult(context.Registration.FailureStatus, description: $"Endpoint is not responding with code in {MinSuccessCode}...{MaxSuccessCode} range, the current status is {response.StatusCode}.");
+
+            return HealthCheckResult.Healthy();
+        }
+        catch (Exception ex)
+        {
+            return new HealthCheckResult(context.Registration.FailureStatus, exception: ex);
+        }
     }
 }
